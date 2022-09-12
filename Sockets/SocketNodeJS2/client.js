@@ -1,0 +1,103 @@
+const net = require('node:net')
+const { exit } = require('node:process')
+const readline = require('readline')
+require('dotenv').config()
+
+function askQuestion(query) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
+
+  return new Promise((resolve) =>
+    rl.question(query, (ans) => {
+      rl.close()
+      resolve(ans)
+    })
+  )
+}
+
+let HOST = '127.0.0.1'
+let PORT = process.env.PORT || 3000
+let client = new net.Socket()
+let clientId = null
+
+// Add a 'data' event handler for the client socket
+// data is what the server sent to this socket
+client.on('data', function (data) {
+  let serverData = JSON.parse(data)
+  // console.log(serverData)
+  if (serverData?.getClientList === true) console.log(`Clients Id : ${serverData.message}`)
+  else if (serverData?.firstTimeConnect === true) clientId = Number(serverData.message)
+  else if (serverData?.isServer === true) console.log(`SERVER : ${serverData?.message}`)
+  else if (serverData.fromClientDetails.clientId !== clientId)
+    console.log(`${serverData.fromClientDetails?.clientId} : ${serverData?.message}`)
+})
+
+// Add a 'close' event handler for the client socket
+client.on('close', function () {
+  console.log('Connection closed')
+})
+
+client.on('error', function () {
+  console.log('Connection closed unexpectedly')
+  client.destroy()
+  exit(1)
+})
+
+async function start() {
+  let name = null
+
+  while (!name) {
+    name = await askQuestion('Enter your name : ')
+  }
+
+  await new Promise((resolve) => {
+    client.connect(PORT, HOST, function () {
+      console.log(`CONNECTED TO: http://${HOST}:${PORT}`)
+      // Write a message to the socket as soon as the client is connected, the server will receive it as message from the client
+      client.write(
+        JSON.stringify({
+          name,
+          message: `${name} connected.`,
+          firstTimeConnect: true,
+        })
+      )
+      resolve()
+    })
+  })
+  let message = 'Test'
+  let clientToId = null
+  while (message != '!exit') {
+    // message = await askQuestion("Enter messsage : ");
+    clientToId = await askQuestion('Enter client id : ')
+    message = await askQuestion('Enter messsage : ')
+
+    if (message == '!whoami') {
+      console.log(`Your client id is : ${clientId}`)
+      continue
+    }
+    if (message == '!ls') {
+      client.write(
+        JSON.stringify({
+          name,
+          message,
+          getClientList: true,
+        })
+      )
+      continue
+    }
+
+    if (message && message != '!exit')
+      client.write(
+        JSON.stringify({
+          name,
+          message,
+          clientToId,
+        })
+      )
+  }
+  client.destroy()
+}
+
+start()
