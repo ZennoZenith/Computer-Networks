@@ -1,88 +1,17 @@
-const readline = require('readline');
-const { exit } = require('node:process');
-let net = require('node:net');
+const { exit } = require('node:process')
+let net = require('node:net')
 require('dotenv').config()
 
-let HOST = '127.0.0.1';
-let PORT = process.env.PORT || 3000;
+const { askQuestion, createUniqueId } = require('./utilties')
 
+let HOST = '127.0.0.1'
+let PORT = process.env.PORT || 3000
 
-// Create a server instance, and chain the listen function to it
-// The function passed to net.createServer() becomes the event handler for the 'connection' event
-// The sock object the callback function receives UNIQUE for each connection
-let clients = []
+let clientMap = new Map()
 
-net.createServer(function (sock) {
-  clients.push(sock)
-  // We have a connection - a socket object is assigned to the connection automatically
-  console.log('CONNECTED: ' + sock.remoteAddress + ':' + sock.remotePort);
-  // Add a 'data' event handler to this instance of socket
-  sock.on('data', function (data) {
-    try {
-      let clientData = JSON.parse(data)
+net.createServer(onConnect).listen(PORT, HOST)
 
-      sock.name = clientData?.name
-      console.log(`${sock.remoteAddress} - ${clientData?.name}  :  ${clientData?.message}`);
-
-      // Write the data back to the socket, the client will receive it as data from the server
-      // sock.write('You said "' + data + '"');
-      for (let i = 0, len = clients.length; i < len; i++) {
-        let item = clients[i]
-        if (sock != item) {
-          if (clientData?.firstTimeConnect === true)
-            item.write(JSON.stringify({
-              name: `${clientData?.name}`,
-              message: `${clientData?.name} connected.`,
-              isServer: true
-            }))
-          else
-            item.write(data)
-
-        }
-      }
-    } catch (error) {
-      console.log(error)
-    }
-  });
-  // Add a 'close' event handler to this instance of socket
-  sock.on('close', function (data) {
-    let index
-    for (let i = 0, len = clients.length; i < len; i++) {
-      let item = clients[i]
-      if (sock != item)
-        item.write(JSON.stringify({
-          name: `${sock.name}`,
-          message: `${sock.name} disconnected.`,
-          isServer: true
-        }))
-      else {
-        index = i
-        console.log(`${item.name} disconnected.`);
-      }
-    }
-    console.log('CLOSED:  ' + sock.remotePort);
-    clients.splice(index, 1);
-  });
-  sock.on('error', function (err) {
-    console.log('Error')
-  })
-
-}).listen(PORT, HOST);
-
-console.log(`Server listening on http://${HOST}:${PORT}`);
-
-
-function askQuestion(query) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise(resolve => rl.question(query, ans => {
-    rl.close();
-    resolve(ans);
-  }))
-}
+console.log(`Server listening on http://${HOST}:${PORT}`)
 
 async function start() {
   let message
@@ -90,24 +19,141 @@ async function start() {
     message = await askQuestion('')
 
     if (message === '!len') {
-      console.log(`Client array length : ${clients.length}`)
+      console.log(`Client array length : ${clientMap.size}`)
       continue
     }
-    if (message === '!exit') {
-      exit(1)
-      continue
-    }
+    if (message === '!exit') exit(1)
 
-    if (!message)
-      continue
-    for (let i = 0, len = clients.length; i < len; i++) {
-      let item = clients[i]
-      item.write(JSON.stringify({
-        name: `SERVER`,
-        message
-      }))
+    if (!message) continue
+
+    let clientEntries = Array.from(clientMap.entries())
+    for (let i = 0, len = clientMap.size; i < len; i++) {
+      let [id, clientSock] = clientEntries[i]
+      sendMessage({
+        isServer: true,
+        message,
+        clientTo: clientSock,
+      })
     }
   }
 }
 
 start()
+
+async function onConnect(sock) {
+  console.log('CONNECTED: ' + sock.remoteAddress + ':' + sock.remotePort)
+
+  let clientId = await createUniqueId(Array.from(clientMap.keys()), {})
+  clientMap.set(clientId, sock)
+  sock.on('data', function (data) {
+    onIncomingData({ data, sock })
+  })
+  sock.on('close', function (data) {
+    onClose({ data, sock })
+  })
+  sock.on('error', function (err) {
+    console.log(`Error occured for clientId ${sock?.clientId}`)
+  })
+  sock.clientId = clientId
+  // clientMap.set(clientId, sock)
+
+  // console.log(sock.clientId)
+}
+
+function onIncomingData({ data, sock }) {
+  try {
+    const clientData = JSON.parse(data)
+
+    if (clientData?.getClientList === true) {
+      sendMessage(
+        {
+          isServer: true,
+          clientFrom: sock,
+          clientTo: sock,
+          message: Array.from(clientMap.keys()),
+          firstTimeConnect: false,
+        },
+        [{ getClientList: true }]
+      )
+      return
+    } else if (clientData?.firstTimeConnect === true) {
+      sendMessage({
+        isServer: true,
+        clientFrom: sock,
+        clientTo: sock,
+        message: sock.clientId,
+        firstTimeConnect: true,
+      })
+    }
+
+    console.log(`${sock.remoteAddress} (${sock.clientId}):  ${clientData?.message}`)
+    let clientEntries = Array.from(clientMap.entries())
+    for (let i = 0, len = clientMap.size; i < len; i++) {
+      let [id, clientSock] = clientEntries[i]
+      if (sock.clientId != id) {
+        if (clientData?.firstTimeConnect === true) {
+          sendMessage({
+            message: `${sock?.clientId} connected.`,
+            isServer: true,
+            clientTo: clientSock,
+            clientFrom: sock,
+          })
+        } else {
+          sendMessage({
+            isServer: false,
+            clientFrom: sock,
+            clientTo: clientSock,
+            message: clientData.message,
+          })
+        }
+      }
+    }
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+function onClose({ data, sock }) {
+  console.log(data)
+  let clientEntries = Array.from(clientMap.entries())
+  for (let i = 0, len = clientMap.size; i < len; i++) {
+    let [id, clientSock] = clientEntries[i]
+    if (id != sock.clientId)
+      sendMessage({
+        message: `${sock.clientId} disconnected.`,
+        isServer: true,
+        clientTo: clientSock,
+      })
+  }
+  console.log(`${sock.clientId} disconnected.`)
+  console.log('CLOSED:  ' + sock.remotePort)
+  clientMap.delete(sock.clientId)
+}
+
+function sendMessage(
+  { isServer = false, message = '', firstTimeConnect = false, clientFrom, clientTo },
+  extra = []
+) {
+  let extras = {}
+  for (let index = 0; index < extra.length; index++) {
+    const e = extra[index]
+    extras = { ...extras, ...e }
+  }
+
+  clientTo.write(
+    JSON.stringify({
+      fromClientDetails: {
+        clientId: clientFrom?.clientId,
+        clientName: clientFrom?.name,
+      },
+      toClientDetails: {
+        clientId: clientTo?.clientId,
+        clientName: clientTo?.name,
+      },
+      message,
+      isServer,
+      firstTimeConnect,
+      ...extras,
+    })
+  )
+}
