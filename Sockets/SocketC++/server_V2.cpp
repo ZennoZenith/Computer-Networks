@@ -35,6 +35,8 @@ public:
   const char *messageToJSON();
 };
 
+int numberOfConnectionMade = 0;
+
 class Server
 {
 private:
@@ -45,6 +47,7 @@ private:
   static void sendMsg(int, int, const char *);
   static void recvMsg(int);
   static void sendToAll(const char *);
+  static void closeConnection(int);
 
 public:
   // Server();
@@ -104,6 +107,7 @@ Server::Server(int port = PORT)
     perror("bind failed");
     exit(EXIT_FAILURE);
   }
+
   if (listen(server_fd, REQUEST_QUEUE_LEN) < 0)
   {
     perror("listen");
@@ -111,9 +115,17 @@ Server::Server(int port = PORT)
   }
 }
 
+void Server::closeConnection(int new_socket)
+{
+  close(new_socket);
+  printf("Closed connection, new_socket(%d)\n", new_socket);
+}
+
 void Server::operator()()
 {
+
   int addrlen = sizeof(address);
+  char buffer[1024] = "This is a sentence.";
 
   while (true)
   {
@@ -124,8 +136,15 @@ void Server::operator()()
       exit(EXIT_FAILURE);
     }
     cout << "New conection made, new_soc ? : " << new_socket << endl;
-    numberOfClients++;
-    new thread(recvMsg, new_socket);
+    numberOfConnectionMade++;
+    // numberOfClients++;
+
+    // new thread(recvMsg, new_socket);
+    // recvMsg(new_socket);
+    sendMsg(new_socket, new_socket, buffer);
+    recvMsg(new_socket);
+    closeConnection(new_socket);
+    cout << "Total number of connection : " << numberOfConnectionMade << endl;
   }
 }
 
@@ -139,30 +158,32 @@ void Server::recvMsg(int new_socket)
   int valread;
   char buffer[1024] = {0};
 
-  while (true)
+  // while (true)
+  // {
+  valread = read(new_socket, buffer, 1024);
+  if (strcmp(buffer, "!exit") == 0)
   {
-    valread = read(new_socket, buffer, 1024);
-    if (strcmp(buffer, "!exit") == 0)
-    {
-      // closing the connected socket
-      close(new_socket);
-      printf("Closed connection, new_socket(%d)\n", new_socket);
-      break;
-    }
-    printf("client(%d) valread(%d)> %s\n", new_socket, valread, buffer);
-    // send(new_socket, hello, strlen(hello), 0);
-    char temp[100] = "Client message : ";
-
-    if (valread <= 0)
-    {
-      // closing the connected socket
-      close(new_socket);
-      printf("Closed connection, new_socket(%d)\n", new_socket);
-      break;
-    }
-    buffer[valread] = '\0';
-    sendMsg(new_socket, new_socket, buffer);
+    // closing the connected socket
+    closeConnection(new_socket);
+    return;
+    // break;
   }
+
+  if (valread <= 0)
+  {
+    // closing the connected socket
+    closeConnection(new_socket);
+    return;
+    // break;
+  }
+
+  buffer[valread] = '\0';
+  printf("client(%d), Response : %s\n", new_socket, buffer);
+  // send(new_socket, hello, strlen(hello), 0);
+  // char temp[100] = "Client message : ";
+
+  // sendMsg(new_socket, new_socket, buffer);
+  // }
 }
 
 void Server::sendMsg(int from_socket, int to_socket, const char *message = "\0")
@@ -174,7 +195,8 @@ void Server::sendMsg(int from_socket, int to_socket, const char *message = "\0")
 int main(int argc, char const *argv[])
 {
   Server server;
-  thread t(server);
-  t.join();
+  // thread t(server);
+  // t.join();
+  server();
   return 0;
 }
