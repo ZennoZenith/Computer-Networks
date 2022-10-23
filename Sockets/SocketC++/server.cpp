@@ -12,7 +12,7 @@
 #include <string>  // for string
 #include <thread>  // for multithreading
 
-// #include<st
+#include "cryptography.h"
 
 using namespace std;
 
@@ -20,6 +20,16 @@ using namespace std;
 #define REQUEST_QUEUE_LEN 3
 #define MAX_CLIENTS 3
 #define ALWAYS_RECV true
+#define KEY 3
+
+string intermediateFunc(char message[], int key)
+{
+  Cryptography c;
+  c.setEncryptedText(message);
+  c.setKey(key);
+  strcpy(message, c.decrypt(RAILFENCE_CYPHER).c_str());
+  return c.getEncryptedText();
+}
 
 class Server;
 
@@ -137,6 +147,9 @@ void Server::recvSendStructure(int new_socket, bool alwaysReceive = false)
     if (!recvMsg(new_socket))
       break;
     printf("client(%d) > %s\n", new_socket, buffer);
+    intermediateFunc(buffer, KEY);
+    printf("Decrypted messsage > %s\n", buffer);
+
     sendMsg(new_socket, new_socket, buffer);
   } while (alwaysReceive);
 
