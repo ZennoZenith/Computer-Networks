@@ -37,6 +37,14 @@ int main()
   cout << "Encrypted text        : " << c.encrypt(RAILFENCE_CYPHER) << endl;
   cout << "Decrypted text        : " << c.decrypt(RAILFENCE_CYPHER) << endl;
 
+  c.setPlainText("defend the east wall");
+  c.setPlainText("GEEKSFORGEEKS");
+  cout << "\nEncryption Algoorithm : VIGENERE_CIPHER" << endl;
+  cout << "Plain text            : " << c.getPlainText() << endl;
+  c.setKeyText("AYUSH");
+  cout << "Encrypted text        : " << c.encrypt(VIGENERE_CIPHER) << endl;
+  cout << "Decrypted text        : " << c.decrypt(VIGENERE_CIPHER) << endl;
+
   cout << "\n\n\n";
   cout << "Matrix length : " << MATRIX_LEN << endl;
   return 0;

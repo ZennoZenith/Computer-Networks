@@ -11,6 +11,7 @@
 #define SUBSTITUTION_CYPHER 1
 #define TRANSPOSITION_CYPHER 2
 #define RAILFENCE_CYPHER 3
+#define VIGENERE_CIPHER 4
 
 using std::string;
 
@@ -643,6 +644,44 @@ string RailFenceCypher::decrypt(string &encryptedText, int key, string &ignoreCh
   return plainText;
 }
 
+class VigenereCipher
+{
+public:
+  static string encrypt(string &, string &, string &);
+  static string decrypt(string &, string &, string &);
+};
+
+string VigenereCipher::encrypt(string &plainText, string &keyText, string &ignoreChar)
+{
+  string encryptedText;
+  int i;
+  int len = plainText.length();
+  encryptedText.resize(len);
+
+  int keyLen = keyText.length();
+  for (i = 0; i < len; i++)
+  {
+    char temp = Helper::ToUpperChar(plainText[i]);
+    encryptedText[i] = 'A' + (temp - 'A' + keyText[i % keyLen] - 'A') % 26;
+  }
+  return encryptedText;
+}
+string VigenereCipher::decrypt(string &encryptedText, string &keyText, string &ignoreChar)
+{
+  int i;
+  string plainText;
+  int encryptedTextLen = encryptedText.length();
+  plainText.resize(encryptedTextLen);
+
+  int keyLen = keyText.length();
+  for (i = 0; i < encryptedTextLen; i++)
+  {
+    char temp = Helper::ToUpperChar(encryptedText[i]);
+    plainText[i] = 'A' + (temp - 'A' - (keyText[i % keyLen] - 'A') + 26) % 26;
+  }
+  return plainText;
+}
+
 class Cryptography
 {
 private:
@@ -651,6 +690,7 @@ protected:
   string encryptedText;
   string ignoreChar;
   string carrierText;
+  string keyText;
   // char matrix[MATRIX_LEN][MATRIX_LEN];
   int key;
 
@@ -666,6 +706,20 @@ public:
   void setKey(int k)
   {
     key = k;
+  }
+  void setKeyText(string &keyText)
+  {
+    this->keyText.swap(keyText);
+    int keyLen = keyText.length();
+    for (int i = 0; i < keyLen; i++)
+      this->keyText[i] = Helper::ToUpperChar(keyText[i]);
+  }
+  void setKeyText(const char *keyText)
+  {
+    this->keyText = keyText;
+    int keyLen = this->keyText.length();
+    for (int i = 0; i < keyLen; i++)
+      this->keyText[i] = Helper::ToUpperChar(keyText[i]);
   }
   string getPlainText();
   string getEncryptedText();
@@ -724,6 +778,9 @@ string Cryptography::encrypt(int encryptAlg)
   case RAILFENCE_CYPHER:
     encryptedText = RailFenceCypher::encrypt(plainText, key, ignoreChar);
     break;
+  case VIGENERE_CIPHER:
+    encryptedText = VigenereCipher::encrypt(plainText, keyText, ignoreChar);
+    break;
 
   default:
     encryptedText = plainText;
@@ -747,6 +804,9 @@ string Cryptography::decrypt(int decryptAlg, int extra = 0)
     break;
   case RAILFENCE_CYPHER:
     plainText = RailFenceCypher::decrypt(encryptedText, key, ignoreChar);
+    break;
+  case VIGENERE_CIPHER:
+    plainText = VigenereCipher::decrypt(encryptedText, keyText, ignoreChar);
     break;
   default:
     plainText = encryptedText;
