@@ -12,8 +12,6 @@
 #include <string>  // for string
 #include <thread>  // for multithreading
 
-#include "cryptography.h"
-
 using namespace std;
 
 #define PORT 8080
@@ -22,14 +20,6 @@ using namespace std;
 #define ALWAYS_RECV true
 #define KEY 3
 
-string intermediateFunc(char message[], int key)
-{
-  Cryptography c;
-  c.setEncryptedText(message);
-  c.setKey(key);
-  strcpy(message, c.decrypt(RAILFENCE_CYPHER).c_str());
-  return c.getEncryptedText();
-}
 
 class Server;
 
@@ -45,7 +35,7 @@ private:
   void closeConnection(int, const char *);
   bool recvMsg(int);
   void sendToAll(int, const char *);
-  void recvSendStructure(int, bool);
+  static void recvSendStructure(Server *, int, bool);
 
 public:
   // Server();
@@ -156,22 +146,22 @@ void Server::sendToAll(int from_socket, const char *message = "\0")
   }
 }
 
-void Server::recvSendStructure(int new_socket, bool alwaysReceive = false)
+void Server::recvSendStructure(Server *s, int new_socket, bool alwaysReceive = false)
 {
 
   do
   {
-    if (!recvMsg(new_socket))
+    if (!s->recvMsg(new_socket))
       break;
-    printf("client(%d) > %s\n", new_socket, buffer);
+    printf("client(%d) > %s\n", new_socket, s->buffer);
     // intermediateFunc(buffer, KEY);
     // printf("Decrypted messsage > %s\n", buffer);
 
     // sendMsg(new_socket, new_socket, buffer);
-    sendToAll(new_socket, buffer);
+    s->sendToAll(new_socket, s->buffer);
   } while (alwaysReceive);
 
-  closeConnection(new_socket);
+  s->closeConnection(new_socket);
 }
 
 void Server::operator()(bool alwaysReceive = false)
@@ -190,8 +180,8 @@ void Server::operator()(bool alwaysReceive = false)
     cout << "New conection made, new_soc ? : " << new_socket << endl;
     clients[numberOfClients] = new_socket;
     numberOfClients++;
-    // new thread(recvSendStructure, new_socket, false);
-    recvSendStructure(new_socket, alwaysReceive);
+    new thread(recvSendStructure, this, new_socket, alwaysReceive);
+    // recvSendStructure(new_socket, alwaysReceive);
   }
 }
 

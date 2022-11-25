@@ -11,6 +11,8 @@
 #define SUBSTITUTION_CYPHER 1
 #define TRANSPOSITION_CYPHER 2
 #define RAILFENCE_CYPHER 3
+#define VIGENERE_CIPHER 4
+#define PLAYFAIR_CIPHER 5
 
 using std::string;
 
@@ -643,6 +645,301 @@ string RailFenceCypher::decrypt(string &encryptedText, int key, string &ignoreCh
   return plainText;
 }
 
+class VigenereCipher
+{
+public:
+  static string encrypt(string &, string &, string &);
+  static string decrypt(string &, string &, string &);
+};
+
+string VigenereCipher::encrypt(string &plainText, string &keyText, string &ignoreChar)
+{
+  string encryptedText;
+  int i;
+  int len = plainText.length();
+  encryptedText.resize(len);
+
+  int keyLen = keyText.length();
+  for (i = 0; i < len; i++)
+  {
+    char temp = Helper::ToUpperChar(plainText[i]);
+    encryptedText[i] = 'A' + (temp - 'A' + keyText[i % keyLen] - 'A') % 26;
+  }
+  return encryptedText;
+}
+string VigenereCipher::decrypt(string &encryptedText, string &keyText, string &ignoreChar)
+{
+  int i;
+  string plainText;
+  int encryptedTextLen = encryptedText.length();
+  plainText.resize(encryptedTextLen);
+
+  int keyLen = keyText.length();
+  for (i = 0; i < encryptedTextLen; i++)
+  {
+    char temp = Helper::ToUpperChar(encryptedText[i]);
+    plainText[i] = 'A' + (temp - 'A' - (keyText[i % keyLen] - 'A') + 26) % 26;
+  }
+  return plainText;
+}
+
+class PlayfairCypher
+{
+public:
+  static string encrypt(string &, string &, string &);
+  static string decrypt(string &, string &, string &);
+};
+
+string PlayfairCypher::encrypt(string &plainText, string &keyText, string &ignoreChar)
+{
+  string encryptedText;
+  int i;
+  int len = plainText.length();
+
+  //** removing duplicate characters from key
+  string tempKeyText;
+  tempKeyText.resize(26);
+  int j = 0, k = 0, l = 0;
+  int keyLen = keyText.length();
+  for (int i = 0; i < keyLen; i++)
+  {
+    keyText[i] = Helper::ToLowerChar(keyText[i]);
+    if (keyText[i] == 'j')
+    {
+      keyText[i] = 'i';
+    }
+
+    for (k = 0; k < j; k++)
+    {
+      if (tempKeyText[k] == keyText[i])
+        break;
+    }
+    if (j == k)
+    {
+      tempKeyText[j] = keyText[i];
+      j++;
+    }
+  }
+  tempKeyText.resize(j);
+  if (j > 25)
+    tempKeyText.resize(25);
+  // tempKeyText[j] = '\0';
+  // tempKeyText[25] = '\0';
+  keyText.swap(tempKeyText);
+
+  //***********************************
+
+  // std::cout << "Key text : " << keyText << std::endl;
+  // std::cout << "Key text len : " << keyText.length() << std::endl;
+
+  k = 0, l = 0;
+  keyLen = keyText.length();
+  //* Setting up matrix
+  char tempStr[] = "abcdefghiklmnopqrstuvwxyz";
+  for (i = 0; i < 5; i++)
+  {
+    for (j = 0; j < 5; j++)
+    {
+      if (k < keyLen)
+      {
+        Helper::matrix[i][j] = keyText[k];
+        int replace = 0;
+        for (int p = 0; p < 25; p++)
+        {
+          if (tempStr[p] == keyText[k])
+            replace = 1;
+          if (replace)
+            tempStr[p] = tempStr[p + 1];
+        }
+      }
+      else
+      {
+        Helper::matrix[i][j] = tempStr[l];
+        l++;
+      }
+      k++;
+    }
+  }
+  // Helper::showMatrix(Helper::matrix, 5, 5);
+
+  //* setup plainText
+  char newPlainText[1024] = "";
+  if (plainText[0] == 'j')
+    plainText[0] = 'i';
+  newPlainText[0] = Helper::ToLowerChar(plainText[0]);
+  k = 1;
+  for (i = 1; i < len; i++)
+  {
+    if (plainText[i] == 'j')
+      plainText[i] = 'i';
+    if (plainText[i] == plainText[i - 1])
+    {
+      newPlainText[k] = 'x';
+      k++;
+    }
+    newPlainText[k] = Helper::ToLowerChar(plainText[i]);
+    k++;
+  }
+  if (k % 2 != 0)
+    newPlainText[k] = 'z';
+  k++;
+
+  plainText = newPlainText;
+  len = plainText.length();
+  encryptedText.resize(len);
+
+  //* Encrypting
+  for (i = 0; i < len; i += 2)
+  {
+    int i1, j1, i2, j2;
+    for (k = 0; k < 5; k++)
+    {
+      for (l = 0; l < 5; l++)
+      {
+        if (Helper::matrix[k][l] == plainText[i])
+        {
+          i1 = k;
+          j1 = l;
+        }
+        if (Helper::matrix[k][l] == plainText[i + 1])
+        {
+          i2 = k;
+          j2 = l;
+        }
+      }
+    }
+
+    if (j1 == j2)
+    {
+      encryptedText[i] = Helper::matrix[(i1 + 1) % 5][j1];
+      encryptedText[i + 1] = Helper::matrix[(i2 + 1) % 5][j2];
+    }
+    else if (i1 == i2)
+    {
+      encryptedText[i] = Helper::matrix[i1][(j1 + 1) % 5];
+      encryptedText[i + 1] = Helper::matrix[i2][(j2 + 1) % 5];
+    }
+    else
+    {
+      encryptedText[i] = Helper::matrix[i1][j2];
+      encryptedText[i + 1] = Helper::matrix[i2][j1];
+    }
+  }
+  return encryptedText;
+}
+string PlayfairCypher::decrypt(string &encryptedText, string &keyText, string &ignoreChar)
+{
+  int i;
+  string plainText;
+  int len = encryptedText.length();
+
+  //** removing duplicate characters from key
+  string tempKeyText;
+  tempKeyText.resize(26);
+  int j = 0, k = 0, l = 0;
+  int keyLen = keyText.length();
+  for (int i = 0; i < keyLen; i++)
+  {
+    keyText[i] = Helper::ToLowerChar(keyText[i]);
+    if (keyText[i] == 'j')
+    {
+      keyText[i] = 'i';
+    }
+
+    for (k = 0; k < j; k++)
+    {
+      if (tempKeyText[k] == keyText[i])
+        break;
+    }
+    if (j == k)
+    {
+      tempKeyText[j] = keyText[i];
+      j++;
+    }
+  }
+  tempKeyText.resize(j);
+  if (j > 25)
+    tempKeyText.resize(25);
+  // tempKeyText[j] = '\0';
+  // tempKeyText[25] = '\0';
+  keyText.swap(tempKeyText);
+
+  //***********************************
+
+  // std::cout << "Key text : " << keyText << std::endl;
+  // std::cout << "Key text len : " << keyText.length() << std::endl;
+
+  k = 0, l = 0;
+  keyLen = keyText.length();
+  //* Setting up matrix
+  char tempStr[] = "abcdefghiklmnopqrstuvwxyz";
+  for (i = 0; i < 5; i++)
+  {
+    for (j = 0; j < 5; j++)
+    {
+      if (k < keyLen)
+      {
+        Helper::matrix[i][j] = keyText[k];
+        int replace = 0;
+        for (int p = 0; p < 25; p++)
+        {
+          if (tempStr[p] == keyText[k])
+            replace = 1;
+          if (replace)
+            tempStr[p] = tempStr[p + 1];
+        }
+      }
+      else
+      {
+        Helper::matrix[i][j] = tempStr[l];
+        l++;
+      }
+      k++;
+    }
+  }
+  // Helper::showMatrix(Helper::matrix, 5, 5);
+  plainText.resize(len);
+
+  //* Decrypting
+  for (i = 0; i < len; i += 2)
+  {
+    int i1, j1, i2, j2;
+    for (k = 0; k < 5; k++)
+    {
+      for (l = 0; l < 5; l++)
+      {
+        if (Helper::matrix[k][l] == encryptedText[i])
+        {
+          i1 = k;
+          j1 = l;
+        }
+        if (Helper::matrix[k][l] == encryptedText[i + 1])
+        {
+          i2 = k;
+          j2 = l;
+        }
+      }
+    }
+
+    if (j1 == j2)
+    {
+      plainText[i] = Helper::matrix[(i1 - 1 + 5) % 5][j1];
+      plainText[i + 1] = Helper::matrix[(i2 + 1) % 5][j2];
+    }
+    else if (i1 == i2)
+    {
+      plainText[i] = Helper::matrix[i1][(j1 - 1 + 5) % 5];
+      plainText[i + 1] = Helper::matrix[i2][(j2 - 1 + 5) % 5];
+    }
+    else
+    {
+      plainText[i] = Helper::matrix[i1][j2];
+      plainText[i + 1] = Helper::matrix[i2][j1];
+    }
+  }
+  return plainText;
+}
+
 class Cryptography
 {
 private:
@@ -651,6 +948,7 @@ protected:
   string encryptedText;
   string ignoreChar;
   string carrierText;
+  string keyText;
   // char matrix[MATRIX_LEN][MATRIX_LEN];
   int key;
 
@@ -666,6 +964,20 @@ public:
   void setKey(int k)
   {
     key = k;
+  }
+  void setKeyText(string &keyText)
+  {
+    this->keyText.swap(keyText);
+    int keyLen = keyText.length();
+    for (int i = 0; i < keyLen; i++)
+      this->keyText[i] = Helper::ToUpperChar(keyText[i]);
+  }
+  void setKeyText(const char *keyText)
+  {
+    this->keyText = keyText;
+    int keyLen = this->keyText.length();
+    for (int i = 0; i < keyLen; i++)
+      this->keyText[i] = Helper::ToUpperChar(keyText[i]);
   }
   string getPlainText();
   string getEncryptedText();
@@ -724,6 +1036,12 @@ string Cryptography::encrypt(int encryptAlg)
   case RAILFENCE_CYPHER:
     encryptedText = RailFenceCypher::encrypt(plainText, key, ignoreChar);
     break;
+  case VIGENERE_CIPHER:
+    encryptedText = VigenereCipher::encrypt(plainText, keyText, ignoreChar);
+    break;
+  case PLAYFAIR_CIPHER:
+    encryptedText = PlayfairCypher::encrypt(plainText, keyText, ignoreChar);
+    break;
 
   default:
     encryptedText = plainText;
@@ -747,6 +1065,12 @@ string Cryptography::decrypt(int decryptAlg, int extra = 0)
     break;
   case RAILFENCE_CYPHER:
     plainText = RailFenceCypher::decrypt(encryptedText, key, ignoreChar);
+    break;
+  case VIGENERE_CIPHER:
+    plainText = VigenereCipher::decrypt(encryptedText, keyText, ignoreChar);
+    break;
+  case PLAYFAIR_CIPHER:
+    plainText = PlayfairCypher::decrypt(encryptedText, keyText, ignoreChar);
     break;
   default:
     plainText = encryptedText;

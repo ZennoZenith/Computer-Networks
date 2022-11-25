@@ -11,9 +11,9 @@ int main()
   // c.setIgnoreChar(" ");
   // c.setPlainText("Hello World");
   c.setKey(3);
-  c.setCarrierText("Ducimus quidem et eligendi. Quam odio et architecto exercitationem. Aut est sint odit. Nostrum minima perferendis repellat in aut explicabo aperiam labore. Quo ut sint et debitis. Consequuntur quos non fuga error quia culpa quaerat rerum.");
+  c.setCarrierText("Ducimus quidem et eligendi Quam odio et architecto exercitationem Aut est sint odit Nostrum minima perferendis repellat in aut explicabo aperiam labore Quo ut sint et debitis Consequuntur quos non fuga error quia culpa quaerat rerum");
 
-  c.setPlainText("defend the east wall");
+  c.setPlainText("Hello");
   cout << "\nEncryption Algoorithm : BACONIAN_CYPHER" << endl;
   cout << "Plain text            : " << c.getPlainText() << endl;
   cout << "Encrypted text        : " << c.encrypt(BACONIAN_CYPHER) << endl;
@@ -39,13 +39,20 @@ int main()
 
   c.setPlainText("defend the east wall");
   c.setPlainText("GEEKSFORGEEKS");
+  c.setPlainText("Hello");
   cout << "\nEncryption Algoorithm : VIGENERE_CIPHER" << endl;
   cout << "Plain text            : " << c.getPlainText() << endl;
   c.setKeyText("AYUSH");
+  c.setKeyText("Key");
   cout << "Encrypted text        : " << c.encrypt(VIGENERE_CIPHER) << endl;
   cout << "Decrypted text        : " << c.decrypt(VIGENERE_CIPHER) << endl;
 
-  cout << "\n\n\n";
-  cout << "Matrix length : " << MATRIX_LEN << endl;
+  c.setPlainText("instruments");
+  cout << "\nEncryption Algoorithm : PLAYFAIR_CIPHER" << endl;
+  cout << "Plain text            : " << c.getPlainText() << endl;
+  c.setKeyText("MONARCHY");
+  cout << "Encrypted text        : " << c.encrypt(PLAYFAIR_CIPHER) << endl;
+  cout << "Decrypted text        : " << c.decrypt(PLAYFAIR_CIPHER) << endl;
+
   return 0;
 }

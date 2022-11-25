@@ -16,12 +16,12 @@ using namespace std;
 
 bool IS_CONNECTED = true;
 
-string intermediateFunc(char message[], int key)
+string intermediateFunc(char message[], string keyText)
 {
   Cryptography c;
   c.setPlainText(message);
-  c.setKey(key);
-  strcpy(message, c.encrypt(RAILFENCE_CYPHER).c_str());
+  c.setKeyText(keyText);
+  strcpy(message, c.encrypt(VIGENERE_CIPHER).c_str());
   return c.getEncryptedText();
 }
 
@@ -53,14 +53,13 @@ void connect(sockaddr_in &serv_addr, int &sock, int &client_fd)
 void sendMsg(int sock, int client_fd)
 {
   char message[1024] = {0};
-  int key = 3;
+  string keyText;
   // while (true)
   // {
   printf("Enter message : ");
   cin.getline(message, 1024);
-  printf("Enter key : ");
-  cin >> key;
-  getchar();
+  printf("Enter key text: ");
+  getline(cin, keyText, '\n');
 
   if (!IS_CONNECTED)
     exit(1);
@@ -75,7 +74,7 @@ void sendMsg(int sock, int client_fd)
     exit(1);
     // break;
   }
-  intermediateFunc(message, key);
+  intermediateFunc(message, keyText);
   cout << "Encrypted message : " << message << endl;
   send(sock, message, strlen(message), 0);
 
@@ -116,13 +115,13 @@ int main(int argc, char const *argv[])
   connect(serv_addr, sock, client_fd);
   IS_CONNECTED = true;
 
-  thread t1(sendMsg, sock, client_fd);
-  thread t2(recvMsg, sock, client_fd);
+  // thread t1(sendMsg, sock, client_fd);
+  // thread t2(recvMsg, sock, client_fd);
 
-  t1.join();
-  t2.join();
+  // t1.join();
+  // t2.join();
 
-  // sendMsg(sock, client_fd);
+  sendMsg(sock, client_fd);
   // recvMsg(sock, client_fd);
   return 0;
 }

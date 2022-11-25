@@ -20,14 +20,15 @@ using namespace std;
 #define REQUEST_QUEUE_LEN 3
 #define MAX_CLIENTS 100
 #define ALWAYS_RECV true
-#define KEY 3
+#define KEY "KEYTEXT"
 
-string intermediateFunc(char message[], int key)
+string intermediateFunc(char message[], string keyText)
 {
   Cryptography c;
   c.setEncryptedText(message);
-  c.setKey(key);
-  strcpy(message, c.decrypt(RAILFENCE_CYPHER).c_str());
+  c.setKeyText(keyText);
+
+  strcpy(message, c.decrypt(VIGENERE_CIPHER).c_str());
   return c.getEncryptedText();
 }
 
@@ -164,11 +165,11 @@ void Server::recvSendStructure(int new_socket, bool alwaysReceive = false)
     if (!recvMsg(new_socket))
       break;
     printf("client(%d) > %s\n", new_socket, buffer);
-    // intermediateFunc(buffer, KEY);
-    // printf("Decrypted messsage > %s\n", buffer);
+    intermediateFunc(buffer, KEY);
+    printf("Decrypted messsage using key text value as 'KEYTEXT' : %s\n", buffer);
 
     // sendMsg(new_socket, new_socket, buffer);
-    sendToAll(new_socket, buffer);
+    // sendToAll(new_socket, buffer);
   } while (alwaysReceive);
 
   closeConnection(new_socket);
@@ -198,7 +199,7 @@ void Server::operator()(bool alwaysReceive = false)
 int main(int argc, char const *argv[])
 {
   Server server;
-  // server();
-  server(ALWAYS_RECV);
+  server();
+  // server(ALWAYS_RECV);
   return 0;
 }

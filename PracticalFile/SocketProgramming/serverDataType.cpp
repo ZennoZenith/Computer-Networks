@@ -12,8 +12,6 @@
 #include <string>  // for string
 #include <thread>  // for multithreading
 
-#include "cryptography.h"
-
 using namespace std;
 
 #define PORT 8080
@@ -21,17 +19,60 @@ using namespace std;
 #define MAX_CLIENTS 100
 #define ALWAYS_RECV true
 #define KEY 3
+#define NUMBER_BASE 10
 
-string intermediateFunc(char message[], int key)
+const char *analyseMesage(const char *message)
 {
-  Cryptography c;
-  c.setEncryptedText(message);
-  c.setKey(key);
-  strcpy(message, c.decrypt(RAILFENCE_CYPHER).c_str());
-  return c.getEncryptedText();
+  bool isInt = true;
+  bool isText = true;
+  bool isSpecial = true;
+  bool isFloat = false;
+  int i = 0;
+
+  char *strPtr = NULL;
+  int number = strtol(message, &strPtr, NUMBER_BASE);
+
+  if (*strPtr != '\0')
+  {
+    isInt = false;
+  }
+  if (*strPtr == '.')
+  {
+    char *tempPtr = NULL;
+    int temp = strtol(strPtr + 1, &tempPtr, NUMBER_BASE);
+    isFloat = true;
+    if (*tempPtr != '\0')
+      isFloat = false;
+  }
+  if (isInt)
+    return "Is integer.";
+  if (isFloat)
+    return "Is float.";
+
+  while (message[i] != '\0')
+  {
+    if ((message[i] >= 'A' && message[i] <= 'Z') ||
+        message[i] >= 'a' && message[i] <= 'z')
+      ;
+    else if (message[i] == ' ' || message[i] == '.')
+      ;
+    else
+      isText = false;
+    i++;
+  }
+  // printf("Int: %d, Float : %d, Text : %d, Special : %d\n", isInt, isFloat, isText, isSpecial);
+
+  if (isText)
+    return "Is text.";
+  if (isSpecial)
+    return "Is special.";
+  return NULL;
 }
 
-class Server;
+void intermediateFunc(char message[])
+{
+  strcpy(message, analyseMesage(message));
+}
 
 class Server
 {
@@ -164,11 +205,12 @@ void Server::recvSendStructure(int new_socket, bool alwaysReceive = false)
     if (!recvMsg(new_socket))
       break;
     printf("client(%d) > %s\n", new_socket, buffer);
-    // intermediateFunc(buffer, KEY);
-    // printf("Decrypted messsage > %s\n", buffer);
+    intermediateFunc(buffer);
+    printf("Client message %s\n", buffer);
+    printf("Sending response\n");
 
-    // sendMsg(new_socket, new_socket, buffer);
-    sendToAll(new_socket, buffer);
+    sendMsg(new_socket, new_socket, buffer);
+    // sendToAll(new_socket, buffer);
   } while (alwaysReceive);
 
   closeConnection(new_socket);
@@ -198,7 +240,7 @@ void Server::operator()(bool alwaysReceive = false)
 int main(int argc, char const *argv[])
 {
   Server server;
-  // server();
-  server(ALWAYS_RECV);
+  server();
+  // server(ALWAYS_RECV);
   return 0;
 }

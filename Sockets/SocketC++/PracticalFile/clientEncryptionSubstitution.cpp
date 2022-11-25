@@ -21,7 +21,7 @@ string intermediateFunc(char message[], int key)
   Cryptography c;
   c.setPlainText(message);
   c.setKey(key);
-  strcpy(message, c.encrypt(RAILFENCE_CYPHER).c_str());
+  strcpy(message, c.encrypt(SUBSTITUTION_CYPHER).c_str());
   return c.getEncryptedText();
 }
 
@@ -116,13 +116,13 @@ int main(int argc, char const *argv[])
   connect(serv_addr, sock, client_fd);
   IS_CONNECTED = true;
 
-  thread t1(sendMsg, sock, client_fd);
-  thread t2(recvMsg, sock, client_fd);
+  // thread t1(sendMsg, sock, client_fd);
+  // thread t2(recvMsg, sock, client_fd);
 
-  t1.join();
-  t2.join();
+  // t1.join();
+  // t2.join();
 
-  // sendMsg(sock, client_fd);
+  sendMsg(sock, client_fd);
   // recvMsg(sock, client_fd);
   return 0;
 }
