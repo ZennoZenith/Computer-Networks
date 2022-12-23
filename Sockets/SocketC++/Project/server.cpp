@@ -15,20 +15,18 @@ using namespace std;
 #define PORT 8080
 #define REQUEST_QUEUE_LEN 3
 #define NUMBER_BASE 10
-#define NUMBER_OF_MESSAGES 10
 
-const char sentMessages[NUMBER_OF_MESSAGES][100] = {
-    "Well done is better than well said.",
-    "Great ideas often receive violent opposition from mediocre minds.",
-    "If it is not right do not do it; if it is not true do not say it.",
-    "I checked to make sure that he was still alive.",
-    "Don't wait for people to be friendly. Show them how.",
-    "Sometimes the biggest act of courage is a small one.",
-    "As long as your going to be thinking anyway, think big.",
-    "As long as your going to be thinking anyway, think big.",
-    "The cautious seldom err.",
-    "Tom got a small piece of pie.",
-};
+// const char sentMessages[][100] = {
+//     "Well done is better than well said.",
+//     "Great ideas often receive violent opposition from mediocre minds.",
+//     "If it is not right do not do it; if it is not true do not say it.",
+//     "I checked to make sure that he was still alive.",
+//     "Don't wait for people to be friendly. Show them how.",
+//     "Sometimes the biggest act of courage is a small one.",
+//     "As long as your going to be thinking anyway, think big.",
+//     "The cautious seldom err.",
+//     "Tom got a small piece of pie.",
+// };
 
 int calculateWord(const char *sentence)
 {
@@ -36,10 +34,11 @@ int calculateWord(const char *sentence)
   int i = 0;
   while (sentence[i] != '\0')
   {
-    if (sentence[i] < 'A' || sentence[i] == 'z' || (sentence[i] > 'Z' && sentence[i] < 'a'))
+    if (sentence[i] == ' ')
       words++;
     i++;
   }
+  words++;
   return words;
 }
 
@@ -68,7 +67,7 @@ public:
   void operator()(bool);
   ~Server();
 };
-char Server::buffer[1024];
+char Server::buffer[1024] = {};
 
 Server::Server(int port = PORT)
 {
@@ -152,13 +151,14 @@ void Server::recvSendStructure(int new_socket, bool alwaysReceive = false)
 {
   do
   {
-    const char *message = sentMessages[rand() % NUMBER_OF_MESSAGES];
-    int numberOfWords = calculateWord(message);
-    sendMsg(new_socket, new_socket, message);
+    cout << "Enter sentence to be sent : ";
+    scanf("%[^\n]%*c", buffer);
+    int numberOfWords = calculateWord(buffer);
+    sendMsg(new_socket, new_socket, buffer);
     if (!recvMsg(new_socket))
       break;
 
-    printf("server  > %s\n", message);
+    printf("server  > %s\n", buffer);
     printf("expected message > %d\n", numberOfWords);
     printf("client(%d) > %s\n", new_socket, buffer);
     if (numberOfWords == intermediateFunc(buffer))

@@ -28,10 +28,11 @@ int calculateWord(char *sentence)
   int i = 0;
   while (sentence[i] != '\0')
   {
-    if (sentence[i] < 'A' || sentence[i] == 'z' || (sentence[i] > 'Z' && sentence[i] < 'a'))
+    if (sentence[i] == ' ')
       words++;
     i++;
   }
+  words++;
   return words;
 }
 
